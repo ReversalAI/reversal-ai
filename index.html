@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Reversal AI — See Everything</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#020810;
+  --blue:#4a9eff;--blue2:#1a4a8a;--blue-dim:#0d2240;
+  --white:#f0f6ff;--muted:#3a5a7a;--dim:#1a3a5a;
+  --green:#00cc88;--green-dim:rgba(0,204,136,0.08);
+  --amber:#ffaa00;--amber-dim:rgba(255,170,0,0.08);
+  --red:#ff3355;--red-dim:rgba(255,51,85,0.08);
+  --border:rgba(74,158,255,0.12);
+}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--navy);color:var(--white);
+  font-family:'Barlow',sans-serif;font-weight:300;
+  min-height:100vh;overflow-x:hidden;
+}
+
+/* ── INTENSE BACKGROUND ── */
+.bg-fixed{position:fixed;inset:0;z-index:0;pointer-events:none;}
+
+/* Deep orbs */
+.bg-fixed::before{
+  content:'';position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 90% 70% at 50% -10%, rgba(26,74,138,0.18) 0%, transparent 65%),
+    radial-gradient(ellipse 60% 50% at 90% 90%, rgba(74,158,255,0.09) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 60% at -10% 60%, rgba(10,50,120,0.12) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 30% at 50% 50%, rgba(0,204,136,0.03) 0%, transparent 60%);
+}
+
+/* Scanline texture */
+.bg-fixed::after{
+  content:'';position:absolute;inset:0;
+  background-image:repeating-linear-gradient(
+    0deg,transparent,transparent 3px,
+    rgba(74,158,255,0.022) 3px,rgba(74,158,255,0.022) 4px
+  );
+}
+
+/* Grid */
+.grid-fixed{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  opacity:0.035;
+  background-image:
+    linear-gradient(rgba(74,158,255,0.8) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(74,158,255,0.8) 1px,transparent 1px);
+  background-size:70px 70px;
+}
+
+/* Animated corner glow pulses */
+.pulse{
+  position:fixed;border-radius:50%;
+  pointer-events:none;z-index:0;
+  animation:pulseglow 8s ease-in-out infinite;
+}
+.pulse-1{
+  width:600px;height:600px;
+  top:-200px;right:-200px;
+  background:radial-gradient(circle,rgba(74,158,255,0.06) 0%,transparent 70%);
+  animation-delay:0s;
+}
+.pulse-2{
+  width:500px;height:500px;
+  bottom:-150px;left:-150px;
+  background:radial-gradient(circle,rgba(26,74,138,0.08) 0%,transparent 70%);
+  animation-delay:4s;
+}
+@keyframes pulseglow{
+  0%,100%{opacity:0.6;transform:scale(1);}
+  50%{opacity:1;transform:scale(1.15);}
+}
+
+/* Corner brackets */
+.corner{position:fixed;width:32px;height:32px;z-index:10;opacity:0.25;}
+.corner svg{width:100%;height:100%;}
+.corner-tl{top:20px;left:20px;}
+.corner-tr{top:20px;right:20px;transform:scaleX(-1);}
+.corner-bl{bottom:20px;left:20px;transform:scaleY(-1);}
+.corner-br{bottom:20px;right:20px;transform:scale(-1);}
+
+/* ── LAYOUT ── */
+.page{
+  position:relative;z-index:1;
+  max-width:920px;margin:0 auto;
+  padding:48px 28px 100px;
+}
+
+/* ── HEADER / HERO ── */
+.hero{
+  display:grid;grid-template-columns:auto 1fr;
+  gap:40px;align-items:center;
+  margin-bottom:52px;
+  padding-bottom:48px;
+  border-bottom:1px solid var(--border);
+}
+@media(max-width:640px){
+  .hero{grid-template-columns:1fr;text-align:center;justify-items:center;gap:24px;}
+}
+
+.logo-wrap{position:relative;}
+.logo-img{
+  width:150px;height:150px;border-radius:50%;display:block;
+  filter:drop-shadow(0 0 32px rgba(74,158,255,0.3));
+  transition:filter 0.4s;
+}
+.logo-img:hover{filter:drop-shadow(0 0 52px rgba(74,158,255,0.55));}
+.logo-ring{
+  position:absolute;inset:-6px;border-radius:50%;
+  border:1px solid rgba(74,158,255,0.15);
+  animation:rotatering 20s linear infinite;
+}
+.logo-ring::before{
+  content:'';position:absolute;top:-2px;left:50%;width:5px;height:5px;
+  background:var(--blue);border-radius:50%;transform:translateX(-50%);
+  box-shadow:0 0 8px var(--blue);
+}
+@keyframes rotatering{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+
+.hero-text{}
+.hero-eyebrow{
+  font-size:10px;letter-spacing:0.6em;color:var(--blue);
+  text-transform:uppercase;margin-bottom:12px;opacity:0.8;
+}
+.hero-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(56px,8vw,88px);
+  letter-spacing:0.08em;line-height:0.9;
+  margin-bottom:10px;
+}
+.hero-title .ai{
+  font-size:clamp(18px,3vw,28px);
+  letter-spacing:0.5em;color:var(--blue);
+  display:block;margin-top:6px;
+}
+.hero-tagline{
+  font-size:11px;letter-spacing:0.4em;color:var(--muted);
+  text-transform:uppercase;margin-bottom:24px;
+}
+.hero-mission{
+  font-size:clamp(14px,2vw,16px);
+  color:rgba(240,246,255,0.6);line-height:1.7;
+  max-width:480px;margin-bottom:24px;
+}
+.hero-mission strong{color:var(--white);font-weight:600;}
+
+/* Contact inline */
+.contact-row{display:flex;flex-wrap:wrap;gap:8px 24px;margin-bottom:20px;}
+.contact-item{
+  display:flex;align-items:center;gap:8px;
+  font-size:13px;font-weight:300;
+  color:rgba(240,246,255,0.55);
+  text-decoration:none;transition:color 0.2s;
+}
+.contact-item:hover{color:var(--white);}
+.contact-item:hover .c-dot{background:var(--blue);box-shadow:0 0 8px var(--blue);}
+.c-dot{
+  width:4px;height:4px;border-radius:50%;
+  background:var(--dim);flex-shrink:0;
+  transition:background 0.2s,box-shadow 0.2s;
+}
+
+/* Socials */
+.socials{display:flex;gap:20px;flex-wrap:wrap;}
+.soc{
+  font-size:10px;letter-spacing:0.3em;color:var(--muted);
+  text-decoration:none;text-transform:uppercase;
+  border-bottom:1px solid transparent;
+  transition:color 0.2s,border-color 0.2s;padding-bottom:2px;
+}
+.soc:hover{color:var(--blue);border-color:var(--blue);}
+
+/* ── PILLARS ── */
+.pillars{
+  display:flex;gap:2px;margin-bottom:52px;
+  flex-wrap:wrap;
+}
+.pillar{
+  flex:1;min-width:140px;
+  background:rgba(8,20,40,0.7);
+  border:1px solid var(--border);
+  padding:16px 20px;text-align:center;
+  transition:border-color 0.3s,background 0.3s;
+}
+.pillar:hover{border-color:rgba(74,158,255,0.3);background:rgba(20,50,90,0.5);}
+.pillar-icon{font-size:20px;margin-bottom:8px;display:block;}
+.pillar-name{
+  font-size:10px;letter-spacing:0.35em;
+  color:var(--blue);text-transform:uppercase;margin-bottom:4px;
+}
+.pillar-desc{font-size:11px;color:rgba(240,246,255,0.4);line-height:1.5;}
+
+/* ── SECTION LABEL ── */
+.section-label{
+  font-size:10px;letter-spacing:0.6em;color:var(--blue);
+  text-transform:uppercase;margin-bottom:20px;
+  display:flex;align-items:center;gap:14px;
+}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* ── DETECTION TOOL ── */
+.tool-wrap{
+  background:rgba(5,12,28,0.7);
+  border:1px solid var(--border);
+  padding:32px;margin-bottom:0;
+}
+
+.tool-intro{
+  font-size:clamp(14px,2vw,16px);
+  color:rgba(240,246,255,0.55);
+  line-height:1.7;margin-bottom:28px;
+}
+.tool-intro strong{color:var(--white);}
+
+/* Context tabs */
+.ctx-tabs{display:flex;gap:2px;margin-bottom:14px;flex-wrap:wrap;}
+.ctx-tab{
+  padding:7px 16px;font-size:11px;letter-spacing:0.2em;
+  text-transform:uppercase;cursor:pointer;
+  border:1px solid var(--border);background:transparent;
+  color:var(--muted);transition:all 0.2s;font-family:'Barlow',sans-serif;
+}
+.ctx-tab.active{background:var(--blue-dim);border-color:var(--blue);color:var(--white);}
+.ctx-tab:hover:not(.active){border-color:rgba(74,158,255,0.3);color:rgba(240,246,255,0.7);}
+
+textarea{
+  width:100%;min-height:140px;
+  background:rgba(2,8,18,0.9);
+  border:1px solid var(--border);
+  border-left:3px solid var(--blue2);
+  color:var(--white);font-family:'Barlow',sans-serif;font-weight:300;
+  font-size:15px;line-height:1.7;padding:16px 18px;
+  resize:vertical;outline:none;transition:border-color 0.3s;
+}
+textarea:focus{border-color:rgba(74,158,255,0.35);border-left-color:var(--blue);}
+textarea::placeholder{color:rgba(58,90,122,0.6);}
+
+.input-meta{display:flex;justify-content:space-between;align-items:center;margin-top:8px;}
+.char-ct{font-size:11px;color:var(--muted);letter-spacing:0.1em;}
+.priv{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;}
+.priv-dot{width:4px;height:4px;border-radius:50%;background:var(--green);}
+
+.analyze-btn{
+  width:100%;padding:16px;margin-top:18px;
+  background:transparent;
+  border:1px solid rgba(74,158,255,0.35);
+  color:var(--white);font-family:'Bebas Neue',sans-serif;
+  font-size:20px;letter-spacing:0.3em;cursor:pointer;
+  transition:all 0.3s;position:relative;overflow:hidden;
+}
+.analyze-btn::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(74,158,255,0.07),transparent);
+  transform:translateX(-100%);transition:transform 0.6s;
+}
+.analyze-btn:hover{border-color:var(--blue);background:rgba(74,158,255,0.05);}
+.analyze-btn:hover::before{transform:translateX(100%);}
+.analyze-btn:disabled{opacity:0.35;cursor:not-allowed;}
+.analyze-btn.loading{border-color:var(--blue);animation:pulseborder 1.5s infinite;}
+@keyframes pulseborder{
+  0%,100%{border-color:rgba(74,158,255,0.35);}
+  50%{border-color:var(--blue);}
+}
+
+/* Scanning */
+.scanning{
+  display:none;text-align:center;padding:28px;
+  border:1px solid var(--border);background:rgba(2,8,18,0.5);margin-top:18px;
+}
+.scanning.active{display:block;}
+.scan-label{font-size:10px;letter-spacing:0.5em;color:var(--blue);text-transform:uppercase;margin-bottom:14px;}
+.scan-bars{display:flex;gap:4px;justify-content:center;align-items:flex-end;height:30px;}
+.scan-bar{width:4px;background:var(--blue);opacity:0.6;animation:sw 1.2s ease-in-out infinite;}
+.scan-bar:nth-child(2){animation-delay:.1s}.scan-bar:nth-child(3){animation-delay:.2s}
+.scan-bar:nth-child(4){animation-delay:.3s}.scan-bar:nth-child(5){animation-delay:.4s}
+.scan-bar:nth-child(6){animation-delay:.5s}.scan-bar:nth-child(7){animation-delay:.6s}
+.scan-bar:nth-child(8){animation-delay:.5s}.scan-bar:nth-child(9){animation-delay:.4s}
+.scan-bar:nth-child(10){animation-delay:.3s}.scan-bar:nth-child(11){animation-delay:.2s}
+.scan-bar:nth-child(12){animation-delay:.1s}
+@keyframes sw{0%,100%{height:5px;opacity:0.3}50%{height:26px;opacity:1}}
+.scan-text{font-size:12px;color:rgba(240,246,255,0.45);margin-top:12px;letter-spacing:0.1em;}
+
+/* Error */
+.err{
+  display:none;border:1px solid rgba(255,51,85,0.3);border-left:3px solid var(--red);
+  padding:14px 18px;background:var(--red-dim);margin-top:14px;
+  font-size:13px;color:rgba(240,246,255,0.7);
+}
+.err.active{display:block;}
+
+/* Results */
+.results{display:none;margin-top:20px;}
+.results.active{display:block;}
+
+.threat-meter{
+  border:1px solid var(--border);padding:24px 28px;
+  margin-bottom:16px;background:rgba(2,8,18,0.6);
+}
+.threat-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;}
+.threat-title{font-size:10px;letter-spacing:0.5em;color:var(--muted);text-transform:uppercase;margin-bottom:4px;}
+.threat-score{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:1;}
+.threat-score.low{color:var(--green)}.threat-score.medium{color:var(--amber)}.threat-score.high{color:var(--red)}
+.threat-lbl{font-size:11px;letter-spacing:0.3em;text-transform:uppercase;margin-top:2px;}
+.threat-lbl.low{color:var(--green)}.threat-lbl.medium{color:var(--amber)}.threat-lbl.high{color:var(--red)}
+.threat-track{height:3px;background:rgba(74,158,255,0.08);}
+.threat-fill{height:100%;transition:width 1s ease;}
+.threat-fill.low{background:var(--green)}.threat-fill.medium{background:linear-gradient(90deg,var(--green),var(--amber))}.threat-fill.high{background:linear-gradient(90deg,var(--green),var(--amber),var(--red))}
+
+.sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+@media(max-width:560px){.sig-grid{grid-template-columns:1fr;}}
+.sig-card{padding:14px 16px;border:1px solid;background:rgba(2,8,18,0.6);}
+.sig-card.detected{border-color:rgba(255,51,85,0.3);background:var(--red-dim);}
+.sig-card.warning{border-color:rgba(255,170,0,0.25);background:var(--amber-dim);}
+.sig-card.clear{border-color:rgba(0,204,136,0.2);background:var(--green-dim);}
+.sig-card.info{border-color:var(--border);background:rgba(8,20,40,0.4);}
+.sig-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.sig-name{font-size:10px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;}
+.sig-name.detected{color:var(--red)}.sig-name.warning{color:var(--amber)}.sig-name.clear{color:var(--green)}.sig-name.info{color:var(--blue)}
+.sig-status{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;padding:2px 7px;border:1px solid;}
+.sig-status.detected{color:var(--red);border-color:rgba(255,51,85,0.4);}
+.sig-status.warning{color:var(--amber);border-color:rgba(255,170,0,0.4);}
+.sig-status.clear{color:var(--green);border-color:rgba(0,204,136,0.4);}
+.sig-status.info{color:var(--blue);border-color:rgba(74,158,255,0.3);}
+.sig-desc{font-size:11px;color:rgba(240,246,255,0.5);line-height:1.5;}
+
+.analysis-block{
+  border:1px solid var(--border);border-left:3px solid var(--blue);
+  padding:20px 24px;margin-bottom:14px;background:rgba(2,8,18,0.6);
+}
+.a-label{font-size:10px;letter-spacing:0.5em;color:var(--blue);text-transform:uppercase;margin-bottom:12px;}
+.a-text{font-size:14px;color:rgba(240,246,255,0.8);line-height:1.75;}
+
+.rec-block{
+  border:1px solid rgba(0,204,136,0.2);border-left:3px solid var(--green);
+  padding:18px 22px;margin-bottom:20px;background:var(--green-dim);
+}
+.rec-label{font-size:10px;letter-spacing:0.5em;color:var(--green);text-transform:uppercase;margin-bottom:10px;}
+.rec-text{font-size:13px;color:rgba(240,246,255,0.78);line-height:1.65;}
+
+.reset-btn{
+  background:transparent;border:1px solid var(--border);
+  color:var(--muted);font-family:'Barlow',sans-serif;font-size:11px;
+  letter-spacing:0.3em;text-transform:uppercase;padding:9px 22px;
+  cursor:pointer;transition:all 0.2s;
+}
+.reset-btn:hover{border-color:rgba(74,158,255,0.3);color:var(--white);}
+
+/* Footer */
+.footer{
+  text-align:center;margin-top:72px;padding-top:28px;
+  border-top:1px solid var(--border);
+}
+.footer-brand{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:0.35em;color:rgba(74,158,255,0.3);}
+.footer-sub{font-size:10px;color:rgba(58,90,122,0.5);margin-top:5px;letter-spacing:0.08em;}
+</style>
+</head>
+<body>
+
+<div class="bg-fixed"></div>
+<div class="grid-fixed"></div>
+<div class="pulse pulse-1"></div>
+<div class="pulse pulse-2"></div>
+
+<!-- Corner brackets -->
+<div class="corner corner-tl"><svg viewBox="0 0 32 32" fill="none"><path d="M1 32V1H32" stroke="#4a9eff" stroke-width="1.5"/></svg></div>
+<div class="corner corner-tr"><svg viewBox="0 0 32 32" fill="none"><path d="M1 32V1H32" stroke="#4a9eff" stroke-width="1.5"/></svg></div>
+<div class="corner corner-bl"><svg viewBox="0 0 32 32" fill="none"><path d="M1 32V1H32" stroke="#4a9eff" stroke-width="1.5"/></svg></div>
+<div class="corner corner-br"><svg viewBox="0 0 32 32" fill="none"><path d="M1 32V1H32" stroke="#4a9eff" stroke-width="1.5"/></svg></div>
+
+<main class="page">
+
+  <!-- ── HERO ── -->
+  <div class="hero">
+    <div class="logo-wrap">
+      <img class="logo-img" src="The_Reversal_AI.webp" alt="Reversal AI"/>
+      <div class="logo-ring"></div>
+    </div>
+    <div class="hero-text">
+      <div class="hero-eyebrow">Manipulation Immune System</div>
+      <div class="hero-title">
+        REVERSAL
+        <span class="ai">A &nbsp; I</span>
+      </div>
+      <div class="hero-tagline">See &nbsp; Everything</div>
+      <div class="hero-mission">
+        The manipulation architecture powering <strong>fraud</strong>, <strong>abusive relationships</strong> and <strong>toxic workplaces</strong> is identical. The packaging changes. The fingerprint never does.
+      </div>
+      <div class="contact-row">
+        <a class="contact-item" id="mailto-link" href="#">
+          <div class="c-dot"></div>
+          <span id="email-text"></span>
+        </a>
+        <a class="contact-item" href="tel:8598037526">
+          <div class="c-dot"></div>
+          859-803-7526
+        </a>
+        <a class="contact-item" href="https://thereversalai.com" target="_blank" rel="noopener">
+          <div class="c-dot"></div>
+          thereversalai.com
+        </a>
+      </div>
+      <div class="socials">
+        <a class="soc" href="https://instagram.com/thereversalai" target="_blank" rel="noopener">Instagram</a>
+        <a class="soc" href="https://x.com/thereversalai" target="_blank" rel="noopener">X</a>
+        <a class="soc" href="https://youtube.com/@thereversalai" target="_blank" rel="noopener">YouTube</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PILLARS ── -->
+  <div class="pillars">
+    <div class="pillar">
+      <span class="pillar-icon">&#x1F6E1;</span>
+      <div class="pillar-name">Fraud</div>
+      <div class="pillar-desc">Real-time detection of pig butchering, investment and elder fraud</div>
+    </div>
+    <div class="pillar">
+      <span class="pillar-icon">&#x1F441;</span>
+      <div class="pillar-name">Relationships</div>
+      <div class="pillar-desc">Surfaces gaslighting, coercion and psychological exploitation</div>
+    </div>
+    <div class="pillar">
+      <span class="pillar-icon">&#x26A1;</span>
+      <div class="pillar-name">Workplace</div>
+      <div class="pillar-desc">Identifies pressure tactics disguised as leadership</div>
+    </div>
+  </div>
+
+  <!-- ── DETECTION TOOL ── -->
+  <div class="section-label">Live Detection Engine</div>
+
+  <div class="tool-wrap">
+    <div class="tool-intro">
+      Paste any message, email, conversation or text below. The engine analyzes it for <strong>manipulation patterns</strong> — fraud scripts, psychological pressure tactics, gaslighting architecture and exploitation signals — in real time.
+    </div>
+
+    <div class="ctx-tabs">
+      <button class="ctx-tab active" onclick="setCtx('general')" id="tab-general">Message / Chat</button>
+      <button class="ctx-tab" onclick="setCtx('email')" id="tab-email">Email</button>
+      <button class="ctx-tab" onclick="setCtx('social')" id="tab-social">Social Media</button>
+      <button class="ctx-tab" onclick="setCtx('workplace')" id="tab-workplace">Workplace</button>
+    </div>
+
+    <textarea id="input-text" placeholder="Paste the message or conversation here. The more context you provide the more precise the analysis."></textarea>
+
+    <div class="input-meta">
+      <div class="char-ct" id="char-ct">0 characters</div>
+      <div class="priv"><div class="priv-dot"></div>Not stored. Not logged. Analyzed and discarded.</div>
+    </div>
+
+    <div class="err" id="err"></div>
+
+    <button class="analyze-btn" id="analyze-btn" onclick="analyze()">
+      ANALYZE FOR MANIPULATION
+    </button>
+
+    <!-- Scanning -->
+    <div class="scanning" id="scanning">
+      <div class="scan-label">Scanning for manipulation patterns</div>
+      <div class="scan-bars">
+        <div class="scan-bar" style="height:6px"></div>
+        <div class="scan-bar" style="height:10px"></div>
+        <div class="scan-bar" style="height:16px"></div>
+        <div class="scan-bar" style="height:22px"></div>
+        <div class="scan-bar" style="height:26px"></div>
+        <div class="scan-bar" style="height:28px"></div>
+        <div class="scan-bar" style="height:26px"></div>
+        <div class="scan-bar" style="height:22px"></div>
+        <div class="scan-bar" style="height:16px"></div>
+        <div class="scan-bar" style="height:10px"></div>
+        <div class="scan-bar" style="height:6px"></div>
+        <div class="scan-bar" style="height:4px"></div>
+      </div>
+      <div class="scan-text" id="scan-text">Analyzing linguistic patterns...</div>
+    </div>
+
+    <!-- Results -->
+    <div class="results" id="results">
+
+      <div class="threat-meter" id="threat-meter">
+        <div class="threat-header">
+          <div>
+            <div class="threat-title">Manipulation Threat Level</div>
+            <div class="threat-score" id="threat-score">0</div>
+            <div class="threat-lbl" id="threat-lbl">Analyzing</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:10px;color:var(--muted);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:6px;">Context</div>
+            <div id="ctx-display" style="font-size:13px;color:var(--white);"></div>
+          </div>
+        </div>
+        <div class="threat-track">
+          <div class="threat-fill" id="threat-fill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="sig-grid" id="sig-grid"></div>
+
+      <div class="analysis-block">
+        <div class="a-label">Full Analysis</div>
+        <div class="a-text" id="a-text"></div>
+      </div>
+
+      <div class="rec-block">
+        <div class="rec-label">Recommended Action</div>
+        <div class="rec-text" id="rec-text"></div>
+      </div>
+
+      <button class="reset-btn" onclick="resetTool()">← Analyze Another Message</button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-brand">REVERSAL AI &nbsp;·&nbsp; SEE EVERYTHING</div>
+    <div class="footer-sub">Andrew Atkinson &nbsp;·&nbsp; Founder &nbsp;·&nbsp; Reversal AI LLC &nbsp;·&nbsp; Louisville, Kentucky &nbsp;·&nbsp; &copy; 2026</div>
+  </div>
+
+</main>
+
+<script>
+// Email assembly
+(function(){
+  var e = 'andrew' + '@' + 'thereversalai.com';
+  var l = document.getElementById('mailto-link');
+  var t = document.getElementById('email-text');
+  if(l && t){ l.href = 'mailto:' + e; t.textContent = e; }
+})();
+
+let ctx = 'general';
+const ctxLabels = {general:'Message / Chat', email:'Email', social:'Social Media', workplace:'Workplace'};
+
+function setCtx(c){
+  ctx = c;
+  document.querySelectorAll('.ctx-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + c).classList.add('active');
+}
+
+document.getElementById('input-text').addEventListener('input', function(){
+  document.getElementById('char-ct').textContent = this.value.length + ' characters';
+});
+
+const scanMsgs = [
+  'Analyzing linguistic patterns...',
+  'Checking for script phase indicators...',
+  'Scanning Unicode and character anomalies...',
+  'Evaluating urgency manufacturing signals...',
+  'Analyzing trust-building architecture...',
+  'Cross-referencing manipulation fingerprints...',
+  'Compiling threat assessment...'
+];
+let scanInt;
+
+function startScan(){
+  let i = 0;
+  const el = document.getElementById('scan-text');
+  scanInt = setInterval(() => { el.textContent = scanMsgs[i++ % scanMsgs.length]; }, 1400);
+}
+function stopScan(){ clearInterval(scanInt); }
+
+async function analyze(){
+  const text = document.getElementById('input-text').value.trim();
+  if(!text || text.length < 10){
+    showErr('Please paste a message to analyze.');
+    return;
+  }
+  hideErr();
+  const btn = document.getElementById('analyze-btn');
+  btn.disabled = true; btn.classList.add('loading'); btn.textContent = 'ANALYZING...';
+  document.getElementById('scanning').classList.add('active');
+  document.getElementById('results').classList.remove('active');
+  startScan();
+
+  const prompt = `You are the Reversal AI manipulation detection engine. Analyze the following ${ctxLabels[ctx]} for manipulation patterns, psychological exploitation tactics, and fraud signals.
+
+Analyze for these 8 core signals:
+1. Unicode or character anomalies (non-native keyboard indicators)
+2. Terminal punctuation patterns (systematic omission)
+3. Over-constructed credibility (profile/identity too perfect)
+4. Documented script deployment (known opener phrases)
+5. Trust building architecture (rapport manufacturing)
+6. Urgency manufacturing (artificial time pressure)
+7. Financial steering language (conversation toward money)
+8. Emotional exploitation patterns (vulnerability targeting)
+
+Also consider: gaslighting patterns, workplace psychological pressure, controlling relationship tactics.
+
+Return ONLY a JSON object with this exact structure:
+{
+  "threat_level": <number 0-100>,
+  "threat_category": "<LOW|MEDIUM|HIGH>",
+  "signals": [
+    {"name": "<max 4 words>", "status": "<DETECTED|WARNING|CLEAR|INFO>", "description": "<one sentence, max 20 words>"}
+  ],
+  "full_analysis": "<2-3 paragraph plain English analysis>",
+  "recommendation": "<specific actionable recommendation, 2-3 sentences>"
+}
+
+Include exactly 6 signals. Return ONLY the JSON.
+
+Message to analyze:
+${text}`;
+
+  try {
+    const res = await fetch(`/.netlify/functions/analyze`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ text: text, context: ctx })
+    });
+    const data = await res.json();
+    stopScan();
+    document.getElementById('scanning').classList.remove('active');
+    if(!res.ok || data.error) throw new Error('API error');
+    renderResults(data);
+  } catch(e) {
+    stopScan();
+    document.getElementById('scanning').classList.remove('active');
+    showErr('Analysis failed. Please try again.');
+    btn.disabled = false; btn.classList.remove('loading'); btn.textContent = 'ANALYZE FOR MANIPULATION';
+  }
+}
+
+function renderResults(r){
+  const level = (r.threat_category || 'LOW').toLowerCase();
+  const score = r.threat_level || 0;
+  const scoreEl = document.getElementById('threat-score');
+  const lblEl = document.getElementById('threat-lbl');
+  const fillEl = document.getElementById('threat-fill');
+  scoreEl.textContent = score;
+  scoreEl.className = 'threat-score ' + level;
+  lblEl.textContent = level === 'high' ? 'HIGH THREAT' : level === 'medium' ? 'ELEVATED RISK' : 'LOW RISK';
+  lblEl.className = 'threat-lbl ' + level;
+  fillEl.className = 'threat-fill ' + level;
+  document.getElementById('ctx-display').textContent = ctxLabels[ctx];
+  setTimeout(() => { fillEl.style.width = score + '%'; }, 100);
+
+  const grid = document.getElementById('sig-grid');
+  grid.innerHTML = '';
+  (r.signals || []).forEach(sig => {
+    const st = (sig.status || 'INFO').toLowerCase();
+    const card = document.createElement('div');
+    card.className = 'sig-card ' + st;
+    card.innerHTML = `<div class="sig-top"><div class="sig-name ${st}">${sig.name}</div><div class="sig-status ${st}">${sig.status}</div></div><div class="sig-desc">${sig.description}</div>`;
+    grid.appendChild(card);
+  });
+
+  document.getElementById('a-text').textContent = r.full_analysis || '';
+  document.getElementById('rec-text').textContent = r.recommendation || '';
+  document.getElementById('results').classList.add('active');
+  const btn = document.getElementById('analyze-btn');
+  btn.disabled = false; btn.classList.remove('loading'); btn.textContent = 'ANALYZE FOR MANIPULATION';
+  document.getElementById('results').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function resetTool(){
+  document.getElementById('input-text').value = '';
+  document.getElementById('char-ct').textContent = '0 characters';
+  document.getElementById('results').classList.remove('active');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function showErr(m){ const e = document.getElementById('err'); e.textContent = m; e.classList.add('active'); }
+function hideErr(){ document.getElementById('err').classList.remove('active'); }
+</script>
+
+</body>
+</html>
