@@ -1,4 +1,4 @@
-const https = require('https');
+javascriptconst https = require('https');
 
 exports.handler = async function(event) {
   if (event.httpMethod === 'OPTIONS') {
@@ -12,15 +12,13 @@ exports.handler = async function(event) {
     const { text, context } = JSON.parse(event.body);
     if (!text || text.length < 10) return { statusCode: 400, headers, body: JSON.stringify({ error: 'Text too short' }) };
     const ctxLabels = { general: 'Message / Chat', email: 'Email', social: 'Social Media', workplace: 'Workplace' };
-    const truncated = text.length > 3000 ? text.substring(0, 3000) + '...' : text;
+    const truncated = text.length > 8000 ? text.substring(0, 8000) + '...' : text;
     const prompt = `You are the Reversal AI manipulation detection engine. Analyze this ${ctxLabels[context] || 'message'} for manipulation patterns. Return ONLY valid JSON with no extra text: { "threat_level": <0-100>, "threat_category": "<LOW|MEDIUM|HIGH>", "signals": [ {"name": "<max 4 words>", "status": "<DETECTED|WARNING|CLEAR|INFO>", "description": "<one sentence>"} ], "full_analysis": "<2-3 paragraphs>", "recommendation": "<2-3 sentences>" }. Include exactly 6 signals. Message to analyze: ${truncated}`;
-
     const body = JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 2000,
       messages: [{ role: 'user', content: prompt }]
     });
-
     const result = await new Promise((resolve, reject) => {
       const options = {
         hostname: 'api.anthropic.com',
@@ -42,13 +40,11 @@ exports.handler = async function(event) {
       req.write(body);
       req.end();
     });
-
     const data = JSON.parse(result.body);
     if (result.status !== 200 || !data.content?.[0]) throw new Error('API error: ' + result.body);
     let raw = data.content[0].text.trim().replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(raw);
     return { statusCode: 200, headers, body: JSON.stringify(parsed) };
-
   } catch (err) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'Analysis failed', detail: err.message }) };
   }
