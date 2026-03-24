@@ -742,4 +742,18 @@ function renderResults(r){
   document.getElementById('results').classList.add('active');
   const btn = document.getElementById('analyze-btn');
   btn.disabled = false; btn.classList.remove('loading'); btn.textContent = 'ANALYZE FOR MANIPULATION';
-  document.getElementBy
+  document.getElementById('results').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function resetTool(){
+  document.getElementById('input-text').value = '';
+  document.getElementById('char-ct').textContent = '0 characters';
+  document.getElementById('results').classList.remove('active');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function showErr(m){ const e = document.getElementById('err'); e.textContent = m; e.classList.add('active'); }
+function hideErr(){ document.getElementById('err').classList.remove('active'); }
+</script>
+
+</body>
+</html>
