@@ -145,8 +145,8 @@ ${truncated}`;
     return { statusCode: 200, headers, body: JSON.stringify(parsed) };
   } catch (err) {
     // Don't fail the whole document over one bad chunk — return empty and let
-    // the frontend log it as a skipped section.
-    return { statusCode: 200, headers, body: JSON.stringify({ instances: [], error: 'chunk_failed' }) };
+    // the frontend log it as a skipped section, but include the real reason.
+    return { statusCode: 200, headers, body: JSON.stringify({ instances: [], error: 'chunk_failed', detail: err.message }) };
   }
 }
 
