@@ -524,6 +524,21 @@ textarea::placeholder{color:rgba(58,90,122,0.6);}
 .instance-quote{font-size:13px;color:rgba(240,246,255,0.75);line-height:1.6;font-style:italic;border-left:2px solid var(--blue2);padding-left:12px;}
 .doc-disclaimer{font-size:11px;color:rgba(240,246,255,0.4);margin-top:18px;line-height:1.7;border-top:1px solid var(--border);padding-top:16px;}
 .doc-err-list{font-size:11px;color:rgba(255,170,0,0.7);margin-top:10px;}
+.doc-scale{border:1px solid var(--border);background:rgba(2,8,18,0.6);padding:18px 22px;margin-bottom:16px;}
+.doc-scale-tier{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.1em;margin-bottom:8px;}
+.doc-scale-tier.high{color:var(--red);}
+.doc-scale-tier.medium{color:var(--amber);}
+.doc-scale-tier.low{color:var(--green);}
+.doc-scale-note{font-size:12px;color:rgba(240,246,255,0.65);line-height:1.6;margin-bottom:10px;}
+.doc-scale-legend{font-size:11px;color:var(--muted);line-height:1.6;border-top:1px solid var(--border);padding-top:10px;}
+.speaker-filter{display:none;gap:2px;margin-bottom:14px;flex-wrap:wrap;}
+.speaker-tab{
+  padding:8px 16px;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;
+  cursor:pointer;border:1px solid var(--border);background:transparent;
+  color:var(--muted);transition:all 0.2s;font-family:'Barlow',sans-serif;
+}
+.speaker-tab.active{background:var(--blue-dim);border-color:var(--blue);color:var(--white);}
+.speaker-tab:hover:not(.active){border-color:rgba(74,158,255,0.3);color:rgba(240,246,255,0.7);}
 </style>
 </head>
 <body>
@@ -749,7 +764,9 @@ textarea::placeholder{color:rgba(58,90,122,0.6);}
       <div class="err" id="doc-err"></div>
 
       <div class="doc-report" id="doc-report">
+        <div class="speaker-filter" id="doc-speaker-filter"></div>
         <div class="doc-summary-grid" id="doc-summary-grid"></div>
+        <div class="doc-scale" id="doc-scale"></div>
         <div id="pattern-groups"></div>
         <div class="doc-err-list" id="doc-skip-list"></div>
         <div class="doc-disclaimer">
@@ -1087,6 +1104,66 @@ function chunkText(text, size = 6000){
   return chunks;
 }
 
+// Parses OurFamilyWizard "Message Report" exports. OFW nests the full prior
+// thread underneath every message as quoted context, so the same message
+// text reappears many times across the document. This pulls out exactly the
+// real, distinct messages — each with its true sender and timestamp — and
+// discards the repeated nested quotes, so nothing gets double-counted and
+// nothing needs to be guessed by the model.
+function parseOFWMessages(rawText){
+  if (!/Message\s+\d+\s+of\s+\d+/i.test(rawText)) return null; // not an OFW export
+
+  // Page breaks sometimes land mid-header, inserting a footer + form-feed
+  // between "Sent:"/"From:" lines. Strip that globally first so split headers
+  // rejoin correctly.
+  const cleaned = rawText.replace(/\s*\|\s*Message Report[^\n]*Page\s*\d+\s*of\s*\d+\s*\f?/gi, '\n');
+  const blocks = cleaned.split(/(?:^|\n)\s*Message\s+\d+\s+of\s+\d+\s*\n/i);
+  const messages = [];
+
+  for (let i = 1; i < blocks.length; i++) {
+    const block = blocks[i];
+    const sentMatches = [...block.matchAll(/(?:^|\n)[ \t]*Sent:\s*([^\n]+)/g)];
+    const fromMatch = block.match(/(?:^|\n)[ \t]*From:\s*([^\n]+)/);
+    const subjectMatch = block.match(/(?:^|\n)[ \t]*Subject:\s*([^\n]+)/);
+    if (sentMatches.length === 0 || !fromMatch) continue;
+
+    const sender = fromMatch[1].trim();
+    if (sender.toLowerCase() === 'ofw system message') continue; // automated notifications, not communication patterns
+
+    const timestamp = sentMatches[0][1].trim();
+    const subjectEndIdx = subjectMatch ? block.indexOf(subjectMatch[0]) + subjectMatch[0].length : 0;
+    // Stop before the second "Sent:" — that's where the nested quoted thread begins.
+    const bodyEnd = sentMatches.length > 1 ? sentMatches[1].index : block.length;
+    const body = block.slice(subjectEndIdx, bodyEnd).replace(/\f/g, '').trim();
+
+    if (body) messages.push({ sender, timestamp, body });
+  }
+  return messages.length ? messages : null;
+}
+
+// Groups parsed OFW messages into chunks under a character budget, formatting
+// each message with an explicit sender/timestamp tag the model can copy
+// directly into its output instead of inferring.
+function chunkMessages(messages, charBudget = 6000){
+  const chunks = [];
+  let current = [];
+  let currentLen = 0;
+  for (const m of messages) {
+    const entryLen = m.body.length + m.sender.length + 40;
+    if (currentLen + entryLen > charBudget && current.length > 0) {
+      chunks.push(current);
+      current = [];
+      currentLen = 0;
+    }
+    current.push(m);
+    currentLen += entryLen;
+  }
+  if (current.length) chunks.push(current);
+  return chunks.map(group => group.map((m, i) =>
+    `[MSG ${i + 1} | SENDER: ${m.sender} | ${m.timestamp}]\n${m.body}`
+  ).join('\n\n'));
+}
+
 function setDocProgress(label, pct, text){
   document.getElementById('doc-progress').classList.add('active');
   document.getElementById('doc-progress-label').textContent = label;
@@ -1126,7 +1203,11 @@ async function analyzeDocument(){
     const text = await extractText(docFile);
     if (!text || text.trim().length < 20) throw new Error('Could not extract readable text from this file.');
 
-    const chunks = chunkText(text, 6000);
+    const ofwMessages = parseOFWMessages(text);
+    const chunks = ofwMessages ? chunkMessages(ofwMessages, 6000) : chunkText(text, 6000);
+    if (ofwMessages) {
+      setDocProgress('Reading document', 16, `Parsed ${ofwMessages.length} distinct messages from OurFamilyWizard export`);
+    }
     const total = chunks.length;
     let completed = 0;
     const skipped = [];
@@ -1167,7 +1248,40 @@ async function analyzeDocument(){
   }
 }
 
+let docAllInstances = [];
+
 function renderDocReport(instances, totalChunks, skipped){
+  docAllInstances = instances;
+
+  const speakers = Array.from(new Set(instances.map(i => i.speaker).filter(Boolean)));
+  const filterWrap = document.getElementById('doc-speaker-filter');
+  if (speakers.length >= 2) {
+    filterWrap.style.display = 'flex';
+    filterWrap.innerHTML = `<div class="speaker-tab active" onclick="applyDocFilter('', this)">Both</div>` +
+      speakers.map(s => `<div class="speaker-tab" onclick="applyDocFilter(${JSON.stringify(s)}, this)">${escapeHtml(s)} only</div>`).join('');
+  } else {
+    filterWrap.style.display = 'none';
+    filterWrap.innerHTML = '';
+  }
+
+  paintDocReport(instances);
+
+  document.getElementById('doc-skip-list').textContent = skipped.length
+    ? `Note: ${skipped.length} of ${totalChunks} document sections could not be analyzed and were skipped. Re-run the analysis if this number is high.`
+    : '';
+
+  document.getElementById('doc-report').classList.add('active');
+  document.getElementById('doc-report').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function applyDocFilter(speaker, btn){
+  document.querySelectorAll('.speaker-tab').forEach(t => t.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const filtered = speaker ? docAllInstances.filter(i => i.speaker === speaker) : docAllInstances;
+  paintDocReport(filtered);
+}
+
+function paintDocReport(instances){
   const byPattern = {};
   instances.forEach(inst => {
     const key = inst.pattern || 'Unclassified';
@@ -1184,9 +1298,25 @@ function renderDocReport(instances, totalChunks, skipped){
     <div class="doc-stat"><div class="doc-stat-num">${highCount}</div><div class="doc-stat-lbl">High Severity</div></div>
   `;
 
+  const n = patternNames.length;
+  const tierLabel = n >= 5 ? 'HIGH — Active Architecture' : n >= 3 ? 'MEDIUM — Deliberate Influence Attempt' : n >= 1 ? 'LOW — Monitor' : 'NONE';
+  const tierNote = n >= 5
+    ? `This selection shows activity across ${n} of 8 monitored patterns. Under the Reversal AI threat methodology, 5 or more active patterns indicates a fully or near-fully deployed manipulation architecture rather than isolated incidents.`
+    : n >= 3
+    ? `This selection shows activity across ${n} of 8 monitored patterns — a deliberate, partially-constructed influence attempt under the Reversal AI threat methodology.`
+    : n >= 1
+    ? `This selection shows activity across ${n} of 8 monitored patterns — worth monitoring, but limited in scope under the Reversal AI threat methodology.`
+    : `No monitored patterns were detected in this selection.`;
+
+  document.getElementById('doc-scale').innerHTML = n > 0 ? `
+    <div class="doc-scale-tier ${n >= 5 ? 'high' : n >= 3 ? 'medium' : 'low'}">${tierLabel}</div>
+    <div class="doc-scale-note">${tierNote}</div>
+    <div class="doc-scale-legend">Per-instance severity (shown on each excerpt below) reflects how clearly that single message matches the pattern — it is not a measure of overall case severity. A pattern built from many low-severity instances through repetition can still be significant.</div>
+  ` : '';
+
   const groupsEl = document.getElementById('pattern-groups');
   if (patternNames.length === 0) {
-    groupsEl.innerHTML = '<div style="padding:24px;text-align:center;color:rgba(240,246,255,0.4);font-size:13px;">No recurring patterns were flagged in this document.</div>';
+    groupsEl.innerHTML = '<div style="padding:24px;text-align:center;color:rgba(240,246,255,0.4);font-size:13px;">No recurring patterns were flagged in this selection.</div>';
   } else {
     groupsEl.innerHTML = patternNames.map((name, gi) => {
       const list = byPattern[name];
@@ -1194,7 +1324,7 @@ function renderDocReport(instances, totalChunks, skipped){
       const sevClass = avgSev >= 2.5 ? 'high' : avgSev >= 1.5 ? 'medium' : 'low';
       const instancesHtml = list.map(inst => `
         <div class="instance-item">
-          <div class="instance-meta">${escapeHtml(inst.timestamp || 'No timestamp detected')} &middot; ${escapeHtml((inst.severity || 'low').toUpperCase())} SEVERITY</div>
+          <div class="instance-meta">${inst.speaker ? escapeHtml(inst.speaker) + ' &middot; ' : ''}${escapeHtml(inst.timestamp || 'No timestamp detected')} &middot; ${escapeHtml((inst.severity || 'low').toUpperCase())} SEVERITY</div>
           <div class="instance-quote">"${escapeHtml(inst.quote || '')}"</div>
         </div>`).join('');
       return `
