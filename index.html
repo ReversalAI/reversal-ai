@@ -1083,7 +1083,23 @@ async function extractText(file){
       setDocProgress('Reading PDF', (i / pdf.numPages) * 15, `Page ${i} of ${pdf.numPages}`);
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
-      text += content.items.map(it => it.str).join(' ') + '\n\n';
+      // pdf.js returns text items in raw content-stream order, which is often
+      // NOT visual reading order (e.g. a margin label can be emitted after the
+      // body text it labels). Reconstruct real lines and top-to-bottom,
+      // left-to-right order using each item's actual position instead.
+      const items = content.items.map(it => ({ str: it.str, x: it.transform[4], y: Math.round(it.transform[5]) }));
+      const lineMap = new Map();
+      for (const it of items) {
+        let key = null;
+        for (const k of lineMap.keys()) { if (Math.abs(k - it.y) <= 2) { key = k; break; } }
+        if (key === null) key = it.y;
+        if (!lineMap.has(key)) lineMap.set(key, []);
+        lineMap.get(key).push(it);
+      }
+      const lines = Array.from(lineMap.entries())
+        .sort((a, b) => b[0] - a[0]) // top to bottom
+        .map(([y, its]) => its.sort((a, b) => a.x - b.x).map(it => it.str).join(' ')); // left to right
+      text += lines.join('\n') + '\n\n';
     }
     return text;
   }
@@ -1211,6 +1227,7 @@ async function analyzeDocument(){
     const total = chunks.length;
     let completed = 0;
     const skipped = [];
+    let firstError = null;
 
     setDocProgress('Analyzing document', 18, `0 of ${total} sections analyzed`);
 
@@ -1221,14 +1238,20 @@ async function analyzeDocument(){
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: 'document_chunk', text: chunk })
         });
-        const data = await res.json();
+        let data;
+        try { data = await res.json(); } catch (parseErr) { data = { error: 'Server returned a non-JSON response (HTTP ' + res.status + ')' }; }
         completed++;
         setDocProgress('Analyzing document', 18 + (completed / total) * 78, `${completed} of ${total} sections analyzed`);
-        if (!res.ok || data.error) { skipped.push(idx); return { instances: [] }; }
+        if (!res.ok || data.error) {
+          skipped.push(idx);
+          if (!firstError) firstError = `HTTP ${res.status}: ${data.detail || data.error || 'unknown error'}`;
+          return { instances: [] };
+        }
         return data;
       } catch (e) {
         completed++;
         skipped.push(idx);
+        if (!firstError) firstError = e.message || 'network error';
         setDocProgress('Analyzing document', 18 + (completed / total) * 78, `${completed} of ${total} sections analyzed`);
         return { instances: [] };
       }
@@ -1237,6 +1260,10 @@ async function analyzeDocument(){
     setDocProgress('Compiling report', 98, 'Aggregating findings...');
     const allInstances = [];
     chunkResults.forEach(r => { if (r && r.instances) allInstances.push(...r.instances); });
+
+    if (skipped.length === total && total > 0) {
+      throw new Error(`All ${total} sections failed to analyze. First error: ${firstError || 'unknown'}`);
+    }
 
     renderDocReport(allInstances, total, skipped);
     hideDocProgress();
