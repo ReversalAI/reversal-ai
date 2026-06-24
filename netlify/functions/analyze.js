@@ -120,6 +120,8 @@ async function handleDocumentChunk(payload, headers) {
 
   const prompt = `You are the Reversal AI manipulation detection engine, analyzing ONE SECTION of a longer co-parenting communication export (e.g. OurFamilyWizard, email, or text history). This is one chunk among many — only report what is literally present in THIS chunk, do not summarize the whole relationship or invent context from outside it.
 
+Each message in this chunk may be labeled like this: [MSG 1 | SENDER: Name | timestamp]. When that labeling is present, copy the SENDER and timestamp values exactly into your output for any instance found in that message — do not guess or infer who said it. If no such labels are present, leave "speaker" as null.
+
 Scan this chunk for instances of these communication patterns:
 ${signalBlock}
 
@@ -127,9 +129,10 @@ For each instance found, extract:
 - "pattern": the exact name of the matching pattern from the list above
 - "quote": a short excerpt (under 30 words) copied directly from this chunk that shows the instance
 - "severity": "low", "medium", or "high" based on how clear and significant the instance is
-- "timestamp": any date/time visible near the excerpt in the original text, or null if none is visible
+- "timestamp": the timestamp from the message's tag if present, otherwise any date/time visible near the excerpt, or null
+- "speaker": the SENDER value from the message's tag if present, otherwise null
 
-Return ONLY valid JSON with no extra text: { "instances": [ { "pattern": "...", "quote": "...", "severity": "...", "timestamp": "..." } ] }
+Return ONLY valid JSON with no extra text: { "instances": [ { "pattern": "...", "quote": "...", "severity": "...", "timestamp": "...", "speaker": "..." } ] }
 
 If this chunk is routine logistics only (pickup times, scheduling confirmations) with no instances of the listed patterns, return: { "instances": [] }
 
@@ -137,7 +140,7 @@ Chunk to analyze:
 ${truncated}`;
 
   try {
-    const parsed = await callClaude(prompt, 3000);
+    const parsed = await callClaude(prompt, 3500);
     if (!Array.isArray(parsed.instances)) parsed.instances = [];
     return { statusCode: 200, headers, body: JSON.stringify(parsed) };
   } catch (err) {
