@@ -1343,13 +1343,6 @@ function paintDocReport(instances){
         </div>`;
     }).join('');
   }
-
-  document.getElementById('doc-skip-list').textContent = skipped.length
-    ? `Note: ${skipped.length} of ${totalChunks} document sections could not be analyzed and were skipped. Re-run the analysis if this number is high.`
-    : '';
-
-  document.getElementById('doc-report').classList.add('active');
-  document.getElementById('doc-report').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function resetDocTool(){
